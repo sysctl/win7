@@ -1,0 +1,109 @@
+Raspberry Pi4 for GPS NTP stratum  1 Server
+ ------------------------------------------------
+ 1. Raspberry pi4 + gps module
+ 
+ 2. software install
+ 
+ apt-get update
+ apt-get upgrade 
+ 
+ 2.2 disable on-broad Bluetooth
+ 2.3 disable on-broad wifi
+ 
+ systemctl disable hciuart.service
+ systemctl disable bluealsa.service
+ systemctl disable bluetooth.service
+ 
+ 2.3
+/boot/config.txt
+enable_uart=1
+dtoverlay=pps-gpio
+
+dtoverlay=disable-wifi
+dtoverlay=disable-bt
+
+/boot/cmdline.txt
+root=PARTUUID=6c586e13-02 rootfstype=ext4 elevator=deadline fsck.repair=yes rootwait
+
+/etc/modules
+pps-gpio
+
+reboot and check pps-gpio start
+dmesg | grep pps
+
+raspi-config
+禁止串口shell
+ 
+安装BCM2835， 打开树莓派终端，并运行一下指令
+wget http://www.airspayce.com/mikem/bcm2835/bcm2835-1.60.tar.gz
+tar zxvf bcm2835-1.60.tar.gz 
+cd bcm2835-1.60/
+sudo ./configure
+sudo make
+sudo make check
+sudo make install
+# 更多的可以参考官网：http://www.airspayce.com/mikem/bcm2835/
+
+安装wiringPi
+sudo apt-get install wiringpi
+#对于树莓派4B可能需要进行升级：
+wget https://project-downloads.drogon.net/wiringpi-latest.deb
+sudo dpkg -i wiringpi-latest.deb
+gpio -v
+# 运行gpio -v会出现2.52版本，如果没有出现说明安装出错
+
+安装Python函数库
+apt-get update
+pip install RPi.GPIO
+apt-get install python-serial python-gpiozero
+
+apt-get install minicom
+# 对于树莓派3B\3B+\4B
+minicom -D /dev/ttyS0 -b 9600
+# 对于树莓派ZERO\2B
+minicom -D /dev/ttyAMA0 -b 9600
+
+有持续输出
+(35) $GNZDA,071814.000,10,12,2019,,*4B
+(72) $GNRMC,071814.000,A,2309.3165,N,11330.4166,E,0.99,167.72,101219,,,D*7D
+(72) $GNGGA,071814.000,2309.3165,N,11330.4166,E,2,6,1.41,55.8,M,-5.8,M,,*6C
+(50) $GPGSA,A,3,31,20,25,10,,,,,,,,,1.71,1.41,0.97*09
+(46) $BDGSA,A,3,10,23,,,,,,,,,,,1.71,1.41,0.97*1E
+(63) $GPGRS,071814.000,1,-2.82,8.49,-16.9,-23.2,5.06,2.18,,,,,,*50
+(47) $GPGST,071814.000,12,11,9.6,92.9,9.6,11,38*56
+(35) $GNZDA,071815.000,10,12,2019,,*4A
+(72) $GNRMC,071815.000,A,2309.3162,N,11330.4167,E,0.00,167.72,101219,,,D*7A
+(72) $GNGGA,071815.000,2309.3162,N,11330.4167,E,2,7,1.27,55.7,M,-5.8,M,,*65
+(52) $GPGSA,A,3,31,20,25,29,10,,,,,,,,1.57,1.27,0.93*02
+(46) $BDGSA,A,3,10,23,,,,,,,,,,,1.57,1.27,0.93*1E
+(68) $GPGSV,4,1,13,10,62,176,22,32,55,011,,25,52,060,23,31,50,286,24*70
+(68) $GPGSV,4,2,13,41,46,236,32,14,40,332,,20,31,163,23,26,26,202,16*7D
+(66) $GPGSV,4,3,13,12,13,039,13,29,09,120,14,01,02,304,,22,02,322,*74
+(25) $GPGSV,4,4,13,193,,,*40
+(64) $BDGSV,4,1,16,07,69,170,,23,62,266,15,03,62,187,,06,60,031,*6C
+(64) $BDGSV,4,2,16,16,59,022,,25,52,022,20,09,51,342,,01,49,129,*6E
+(64) $BDGSV,4,3,16,02,47,235,,10,44,200,19,04,31,111,,05,24,255,*60
+(62) $BDGSV,4,4,16,13,17,214,,14,14,139,,08,07,188,,24,03,045,*6D
+就说明设备正常
+
+apt-get install gpsd gpsd-clients python-gps  pps-tools
+
+Configuring gpsd to auto-start
+Likely with a fresh install of Raspbian Jessie instead of the GPS output showing you may get a "GPS timeout" message.  Try editing the startup file and linkage for GPSD as follows.  Thanks to A Carver: The gpsd needs to be started with the "-n" option. These options are set in the directory /etc/default, so you need to edit the file /etc/default/gpsd to change the line: GPSD_OPTIONS="" to GPSD_OPTIONS="-n".  Method A is to do this through dpkg-reconfigure gpsd (which appears not to work as expected with Raspbian Jessie), method B is to edit the file directly.  Set USBAUTO="false".  Set DEVICES="/dev/ttyAMA0".
+
+$ sudo nano /etc/default/gpsd
+
+See:  http://raspberrypi.stackexchange.com/questions/29547/cant-get-gps-to-automatically-work-after-reboot
+
+With Raspbian Jessie, gpsd doesn't appear to auto-start properly, but Tomasz Torcz on the comp.sys.raspberry-pi Usenet group suggested trying:
+
+$ sudo ln -s /lib/systemd/system/gpsd.service /etc/systemd/system/multi-user.target.wants/
+
+and that appears to do the trick.
+
+You should then find that gpsd restarts after a reboot.
+
+
+
+
+ 
